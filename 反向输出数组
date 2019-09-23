@@ -1,0 +1,34 @@
+# 反向输出T_CPG_LIST
+makefile中写法T_CPG_LIST := $(shell echo $(T_CPG_LIST) | sed '/\n/!G;s/\([^ ]* \)\(.*\n\)/&\2\1/;//D;s/\n/ /' )
+function reverse_list
+{
+  echo $1 | sed '/\n/!G;s/\([^ ]* \)\(.*\n\)/&\2\1/;//D;s/\n/ /'
+}
+reverse_list "ab de fg"
+#fg de ab
+解析：此方法关键在 D 参数。D 删除模式空间中的第一行（确切的说应该时第一部分），如果删除后，模式空间中还有剩余行，则返回 D 之前的命令，重新执行，如果 D 后，patten space 中没有任何内容，则将退出 sed命令，将控制权交给 sed，在没有 -n 参数时，sed 会输出 pattern space 中的内容，如果最后一行没有被读入，则 sed 继续读入下一行，并去掉结尾的 \n 放到 pattern space 中，继续执行 sed 命令如果最一行已经读入，则退出 sed。
+D 命令会引起循环，如果 D 被执行，那么 D 后面的命令是不会被执行的。
+1.第一次"/\n/!G;"没有\n换行符，要执行G,因为保留空间中为空，所以在模式空间追加一空行
+2.执行s/\([^ ]* \)\(.*\n\)/&\2\1/替换后模式空间内容
+  >模式空间第一部分：ab de fg\n
+  >模式空间第二部分：de fg\nab   
+  >模式空间第三部分：null
+3.执行//D;删除模式空间第一部分,因为还有内容，返回前面命令,直到模式空间中为空。此时打印 fg\nde ab
+4.执行s/\n/ /，输出fg de ab
+
+二、逆序输出参数：
+function reverse_arg
+ {
+ while [ $# -ne 0 ]
+ do
+ op[$#]=$1
+ shift
+ done
+ echo ${op[@]}
+ }
+reverse_arg "ab" "de" "fg"
+
+完全逆序的命令 # gf ed ba
+echo "ab de fg" | rev 
+echo "ab de fg" | python -c 'print(input()[::-1])'
+echo "ab de fg" | awk '{for(i=1; i<=length;i++) {line = substr($0, i, 1) line}} END{print line}'
